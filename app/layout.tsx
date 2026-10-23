@@ -4,7 +4,6 @@ import "./globals.css";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import { ThemeProvider } from "@/components/theme-provider";
-import AnimatedBackground from "@/components/animated-background";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +33,6 @@ export default function RootLayout({
     >
       <body className="min-h-screen text-black dark:text-white transition-colors">
         <ThemeProvider>
-          <AnimatedBackground />
           <div className="relative z-10 flex min-h-screen flex-col">
             <Navbar />
             <main className="flex-1">{children}</main>
