@@ -4,20 +4,21 @@ import "./globals.css";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import { ThemeProvider } from "@/components/theme-provider";
-import AnimatedBackground from "@/components/animated-background";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.clementech.online"),
   title: "Clementech.ai",
-  description: "Inteligencia artificial, tutoriales, automatizacion y soluciones digitales",
+  description: "Plataforma de inteligencia artificial",
 };
 
 export default function RootLayout({
@@ -28,15 +29,14 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col text-black dark:text-white transition-colors">
+      <body className="min-h-screen text-black dark:text-white transition-colors">
         <ThemeProvider>
-          <AnimatedBackground />
-          <div className="relative z-10 flex flex-col flex-1">
+          <div className="relative z-10 flex min-h-screen flex-col">
             <Navbar />
-            <div className="flex-1">{children}</div>
+            <main className="flex-1">{children}</main>
             <Footer />
           </div>
         </ThemeProvider>
