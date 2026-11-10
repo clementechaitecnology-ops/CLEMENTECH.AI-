@@ -3,6 +3,8 @@
 const sections = [
   { href: "/", label: "Inicio" },
   { href: "/ia", label: "IA" },
+  { href: "/organizacion", label: "Organización" },
+  { href: "/dropshipping", label: "Dropshipping" },
   { href: "/tutoriales", label: "Tutoriales" },
   { href: "/blog", label: "Blog" },
   { href: "/videos", label: "Videos" },

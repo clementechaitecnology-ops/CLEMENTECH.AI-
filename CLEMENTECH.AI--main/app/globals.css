@@ -1,57 +1,105 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #fafaf9;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --surface-contrast: #f8fafc;
+  --background: #eef1f5;
+  --foreground: #1a1a1a;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: #ffffff;
+}
+
+html.dark,
+html.dark body {
+  background: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-html {
-  min-height: 100%;
-  background-color: var(--background);
-  color: var(--foreground);
-}
-
-body {
-  min-height: 100vh;
-  margin: 0;
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.dark {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --surface: #111827;
-  --surface-contrast: #0f172a;
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #06b6d4;
+  outline-offset: 3px;
 }
 
 @keyframes float-slow {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(30px, -30px) scale(1.05);
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -30px) scale(1.05); }
 }
-
 @keyframes float-slower {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-40px, 20px) scale(1.08);
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, 20px) scale(1.08); }
 }
+.animate-float-slow { animation: float-slow 12s ease-in-out infinite; }
+.animate-float-slower { animation: float-slower 16s ease-in-out infinite; }
 
-.animate-float-slow {
-  animation: float-slow 12s ease-in-out infinite;
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+.animate-fade-up { animation: fade-up 0.6s ease-out forwards; }
 
-.animate-float-slower {
-  animation: float-slower 16s ease-in-out infinite;
+@keyframes float-ia {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
 }
+.animate-float-ia { animation: float-ia 4s ease-in-out infinite; }
+
+@keyframes sand-fall {
+  0% { opacity: 0; transform: translateY(-4px) scale(.8); }
+  20%, 70% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(72px) scale(.35); }
+}
+.animate-\[sand-fall_2\.2s_linear_infinite\] { animation: sand-fall 2.2s linear infinite; }
+.animate-\[sand-fall_2\.8s_linear_\.4s_infinite\] { animation: sand-fall 2.8s linear .4s infinite; }
+.animate-\[sand-fall_1\.9s_linear_\.8s_infinite\] { animation: sand-fall 1.9s linear .8s infinite; }
+.animate-\[sand-fall_2s_linear_infinite\] { animation: sand-fall 2s linear infinite; }
+.animate-\[sand-fall_2\.5s_linear_\.4s_infinite\] { animation: sand-fall 2.5s linear .4s infinite; }
+.animate-\[sand-fall_1\.7s_linear_\.8s_infinite\] { animation: sand-fall 1.7s linear .8s infinite; }
+@keyframes sand-rise {
+  0% { opacity: 0; transform: translateY(8px) scale(.5); }
+  30%, 75% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-55px) scale(.3); }
+}
+.animate-\[sand-rise_3s_linear_infinite\] { animation: sand-rise 3s linear infinite; }
+.animate-\[sand-rise_2\.5s_linear_\.5s_infinite\] { animation: sand-rise 2.5s linear .5s infinite; }
+.animate-\[sand-rise_2s_linear_1s_infinite\] { animation: sand-rise 2s linear 1s infinite; }
+.animate-\[sand-rise_2\.5s_linear_infinite\] { animation: sand-rise 2.5s linear infinite; }
+.animate-\[sand-rise_2s_linear_\.5s_infinite\] { animation: sand-rise 2s linear .5s infinite; }
+.animate-\[sand-rise_1\.5s_linear_1s_infinite\] { animation: sand-rise 1.5s linear 1s infinite; }
+
+@keyframes border-flow-top {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-border-flow-top { animation: border-flow-top 2.5s linear infinite; }
+
+@keyframes border-flow-bottom {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+.animate-border-flow-bottom { animation: border-flow-bottom 2.5s linear infinite; }
+
+@keyframes border-flow-left {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(-100%); }
+}
+.animate-border-flow-left { animation: border-flow-left 2.5s linear infinite; }
+
+@keyframes border-flow-right {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+.animate-border-flow-right { animation: border-flow-right 2.5s linear infinite; }
