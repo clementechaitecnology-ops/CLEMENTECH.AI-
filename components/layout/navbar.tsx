@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ChevronDown, Menu, X } from "lucide-react";
 import ThemeToggle from "@/components/theme-toggle";
+import LogoUpload from "@/components/ui/logo-upload";
 
 const mainLinks = [
   { href: "/", label: "Inicio" },
@@ -15,17 +16,18 @@ const mainLinks = [
   { href: "/blog", label: "Blog" },
   { href: "/videos", label: "Videos" },
   { href: "/cursos", label: "Cursos" },
-  { href: "/servicios", label: "ServicSios" },
-  { href: "/portafolio", label: "Portafolio" },
 ];
 
 const moreLinks = [
+  { href: "/servicios", label: "Servicios" },
+  { href: "/portafolio", label: "Portafolio" },
   { href: "/comunidad", label: "Comunidad" },
   { href: "/recursos", label: "Recursos" },
   { href: "/tienda", label: "Tienda" },
   { href: "/academia", label: "Academia" },
   { href: "/contacto", label: "Contacto" },
-{ href: "/biblioteca", label: "Biblioteca" },];
+  { href: "/biblioteca", label: "Biblioteca" },
+];
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -37,9 +39,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-black/80 backdrop-blur">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="font-medium text-black dark:text-white">
-          Clementech<span className="text-cyan-500 dark:text-cyan-400">.ai</span>
-        </Link>
+        <LogoUpload />
 
         <nav className="hidden lg:flex items-center gap-6">
           {mainLinks.map((link) => (

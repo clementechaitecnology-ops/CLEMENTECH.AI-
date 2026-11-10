@@ -1,9 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { ArrowUpRight, Bot, Brain, Bookmark, CalendarDays, FileText, Image, Newspaper, Plus, RefreshCw, Search, Sparkles, WandSparkles } from "lucide-react";
 import NeuralNetwork from "@/components/ui/neural-network";
 import Link from "next/link";
+import DescubrimientoDelDia from "@/components/sections/descubrimiento-del-dia";
+import AiDirectory from "@/components/ia/AiDirectory";
 
 const herramientas = [
   {
@@ -218,6 +220,8 @@ export default function IAPage() {
         </header>
       </section>
 
+      <DescubrimientoDelDia />
+
       <section className="mb-20 rounded-2xl border border-violet-200 bg-violet-50 p-6 dark:border-violet-400/20 dark:bg-violet-950/20 sm:flex sm:items-center sm:justify-between sm:gap-8">
         <div>
           <p className="mb-2 text-xs font-semibold tracking-[0.18em] text-violet-600 dark:text-violet-400">ASISTENTE IA</p>
@@ -229,7 +233,7 @@ export default function IAPage() {
 
       <nav aria-label="Secciones del Laboratorio IA" className="sticky top-16 z-20 mb-12 -mx-2 overflow-x-auto border-y border-neutral-200 bg-white/95 px-2 py-2 backdrop-blur dark:border-neutral-800 dark:bg-black/95">
         <div className="mx-auto flex min-w-max gap-1">
-          {[ ["Laboratorio", "laboratorio-heading"], ["Noticias", "noticias-ia"], ["Descubrimientos", "descubrimientos-heading"], ["Lanzamientos", "lanzamientos-heading"], ["Fuentes", "fuentes-heading"] ].map(([label, id]) => <a key={id} href={`#${id}`} aria-current={seccionActiva === id ? "location" : undefined} onClick={() => setSeccionActiva(id)} className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${seccionActiva === id ? "border-cyan-400 bg-cyan-50 text-cyan-700 dark:border-cyan-400/60 dark:bg-cyan-400/10 dark:text-cyan-300" : "border-transparent text-neutral-500 hover:bg-neutral-100 hover:text-black dark:hover:bg-neutral-900 dark:hover:text-white"}`}>{label}</a>)}
+          {[ ["Laboratorio", "laboratorio-heading"], ["Noticias", "noticias-ia"], ["Descubrimientos", "descubrimientos-heading"], ["Lanzamientos", "lanzamientos-heading"], ["Fuentes", "fuentes-heading"], ["Directorio mundial", "ai-directory"] ].map(([label, id]) => <a key={id} href={`#${id}`} aria-current={seccionActiva === id ? "location" : undefined} onClick={() => setSeccionActiva(id)} className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${seccionActiva === id ? "border-cyan-400 bg-cyan-50 text-cyan-700 dark:border-cyan-400/60 dark:bg-cyan-400/10 dark:text-cyan-300" : "border-transparent text-neutral-500 hover:bg-neutral-100 hover:text-black dark:hover:bg-neutral-900 dark:hover:text-white"}`}>{label}</a>)}
         </div>
       </nav>
 
@@ -336,6 +340,8 @@ export default function IAPage() {
           ))}
         </ol>
       </section>
+
+      <AiDirectory />
     </main>
   );
 }
