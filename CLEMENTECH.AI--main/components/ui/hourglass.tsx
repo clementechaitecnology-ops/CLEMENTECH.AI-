@@ -380,9 +380,11 @@ export default function Hourglass() {
   final.setHours(23, 59, 59, 999);
 
   const progreso =
-    ((now.getTime() - inicio.getTime()) /
-      (final.getTime() - inicio.getTime())) *
-    100;
+    timestamp === 0
+      ? 0
+      : ((now.getTime() - inicio.getTime()) /
+          (final.getTime() - inicio.getTime())) *
+        100;
 
   const fecha =
     timestamp === 0
