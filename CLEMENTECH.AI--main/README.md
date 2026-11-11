@@ -32,6 +32,17 @@ proveedor de hosting para producción:
 Las rutas de Supabase requieren una URL y clave válidas al recibir solicitudes;
 la compilación del sitio no necesita estas credenciales.
 
+## Centro de Acción
+
+En `/organizacion` puedes crear recordatorios, planificar tareas, iniciar
+temporizadores de enfoque y pausas, registrar metas personales y consultar tus
+sesiones de enfoque. Las metas, el temporizador y las tareas creadas sin
+conexión se guardan en el almacenamiento local del navegador de ese dispositivo.
+Las tareas nuevas se sincronizan con Supabase cuando el servicio está
+configurado. Activa los avisos del navegador para recibir alarmas: los
+recordatorios requieren mantener abierta la página; no son notificaciones
+push cuando el navegador está cerrado.
+
 ## Comprobaciones
 
 ```bash

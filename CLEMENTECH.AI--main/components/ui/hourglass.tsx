@@ -1,6 +1,45 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+
+let horaActual = 0;
+let intervaloReloj: number | undefined;
+const suscriptoresReloj = new Set<() => void>();
+
+function suscribirReloj(suscriptor: () => void) {
+  suscriptoresReloj.add(suscriptor);
+  if (intervaloReloj === undefined) {
+    const actualizar = () => {
+      horaActual = Date.now();
+      suscriptoresReloj.forEach((listener) => listener());
+    };
+    actualizar();
+    intervaloReloj = window.setInterval(actualizar, 1000);
+  }
+
+  return () => {
+    suscriptoresReloj.delete(suscriptor);
+    if (suscriptoresReloj.size === 0 && intervaloReloj !== undefined) {
+      window.clearInterval(intervaloReloj);
+      intervaloReloj = undefined;
+      horaActual = 0;
+    }
+  };
+}
+
+function obtenerHora() {
+  return horaActual;
+}
+
+function obtenerHoraServidor() {
+  return 0;
+}
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
@@ -197,40 +236,13 @@ function normalizarFrases(data: unknown): Frase[] {
   });
 }
 
-function normalizarVersiculos(data: unknown): Versiculo[] {
-  return obtenerLista(data, "versiculos").flatMap((item, index) => {
-    const registro = asRecord(item);
-    const texto =
-      typeof registro?.texto === "string"
-        ? registro.texto
-        : typeof registro?.versiculo === "string"
-          ? registro.versiculo
-          : "";
-
-    if (!texto.trim()) return [];
-
-    const referencia =
-      typeof registro?.referencia === "string"
-        ? registro.referencia
-        : typeof registro?.cita === "string"
-          ? registro.cita
-          : typeof registro?.referencia_biblica === "string"
-            ? registro.referencia_biblica
-            : "Referencia bíblica";
-
-    return [{
-      id:
-        typeof registro?.id === "string" || typeof registro?.id === "number"
-          ? registro.id
-          : `api-versiculo-${index}`,
-      texto,
-      referencia,
-    }];
-  });
-}
-
 export default function Hourglass() {
-  const [now, setNow] = useState(new Date());
+  const timestamp = useSyncExternalStore(
+    suscribirReloj,
+    obtenerHora,
+    obtenerHoraServidor,
+  );
+  const now = new Date(timestamp);
 
   const [frases, setFrases] = useState<Frase[]>(FRASES_RESPALDO);
   const [versiculos, setVersiculos] =
@@ -258,28 +270,15 @@ export default function Hourglass() {
   const [versiculoAnim, setVersiculoAnim] = useState(false);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     async function cargarContenido() {
       try {
-        const [frasesResponse, versiculosResponse] = await Promise.all([
-          fetch("/api/centro-accion/frases", {
-            cache: "no-store",
-          }).catch(() => null),
-
-          fetch("/api/centro-accion/versiculos", {
-            cache: "no-store",
-          }).catch(() => null),
-        ]);
+        const frasesResponse = await fetch(
+          "/api/centro-accion/tareas/frases",
+          { cache: "no-store" },
+        ).catch(() => null);
 
         let frasesFinal = FRASES_RESPALDO;
-        let versiculosFinal = VERSICULOS_RESPALDO;
+        const versiculosFinal = VERSICULOS_RESPALDO;
 
         if (frasesResponse?.ok) {
           const data = await frasesResponse.json();
@@ -287,15 +286,6 @@ export default function Hourglass() {
 
           if (normalizadas.length > 0) {
             frasesFinal = normalizadas;
-          }
-        }
-
-        if (versiculosResponse?.ok) {
-          const data = await versiculosResponse.json();
-          const normalizados = normalizarVersiculos(data);
-
-          if (normalizados.length > 0) {
-            versiculosFinal = normalizados;
           }
         }
 
@@ -394,12 +384,15 @@ export default function Hourglass() {
       (final.getTime() - inicio.getTime())) *
     100;
 
-  const fecha = now.toLocaleDateString("es-CO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  const fecha =
+    timestamp === 0
+      ? "Sincronizando reloj..."
+      : now.toLocaleDateString("es-CO", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
 
   const numeros = useMemo(
     () => [
@@ -607,7 +600,7 @@ export default function Hourglass() {
             </div>
 
             <div className="clock-time">
-              {h}:{m}:{s}
+              {timestamp === 0 ? "--:--:--" : `${h}:${m}:${s}`}
             </div>
 
             <div className="clock-date">{fecha}</div>

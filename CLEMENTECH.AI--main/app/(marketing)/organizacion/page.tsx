@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import {
   Plus,
@@ -15,8 +15,10 @@ import {
   Lightbulb,
   Calendar,
   Send,
+  Target,
 } from "lucide-react";
-
+import TimeTools, { reproducirAlarma } from "@/components/organizacion/time-tools";
+import { usePersistentState } from "@/lib/use-persistent-state";
 import Hourglass from "@/components/ui/hourglass";
 
 type Tarea = {
@@ -57,6 +59,13 @@ function inicioSemana() {
 
 export default function OrganizacionPage() {
   const [tareas, setTareas] = useState<Tarea[]>([]);
+  const [tareasLocales, setTareasLocales] = usePersistentState<Tarea[]>(
+    "clementech-centro-accion-tareas-v1",
+    [],
+  );
+  const [tareaEnfoque, setTareaEnfoque] = useState("");
+  const [tareasCompletadasSesion, setTareasCompletadasSesion] = useState(0);
+  const [mensajeCentro, setMensajeCentro] = useState("");
   const [librosSugeridos, setLibrosSugeridos] = useState<LibroSugerido[]>([]);
   const [racha, setRacha] = useState(0);
 
@@ -81,41 +90,49 @@ export default function OrganizacionPage() {
     con_alarma: false,
   });
 
+  const tareasDisponibles = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          [...tareas, ...tareasLocales].map((tarea) => [tarea.id, tarea]),
+        ).values(),
+      ),
+    [tareas, tareasLocales],
+  );
+
   const cargarTodo = useCallback(async () => {
     try {
-      const [
-        rTareas,
-        rLibrosS,
-        rRacha,
-      ] = await Promise.all([
-        fetch("/api/centro-accion/tareas", {
-          cache: "no-store",
-        })
-          .then((r) => r.json())
-          .catch(() => ({ tareas: [] })),
+      const [respuestaTareas, respuestaLibros, respuestaRacha] =
+        await Promise.all([
+          fetch("/api/centro-accion/tareas", { cache: "no-store" }),
+          fetch("/api/libros/buscar", { cache: "no-store" }),
+          fetch("/api/centro-accion/racha", { cache: "no-store" }),
+        ]);
 
-        fetch("/api/libros/buscar", {
-          cache: "no-store",
-        })
-          .then((r) => r.json())
-          .catch(() => ({ libros: [] })),
+      if (respuestaTareas.ok) {
+        const datosTareas: { tareas?: Tarea[] } = await respuestaTareas.json();
+        const tareasRemotas = datosTareas.tareas || [];
+        setTareas(tareasRemotas);
+        setMensajeCentro("");
+      } else {
+        throw new Error("No se pudieron sincronizar las tareas.");
+      }
 
-        fetch("/api/centro-accion/racha", {
-          cache: "no-store",
-        })
-          .then((r) => r.json())
-          .catch(() => ({ racha: 0 })),
-      ]);
+      if (respuestaLibros.ok) {
+        const datosLibros: { libros?: LibroSugerido[] } =
+          await respuestaLibros.json();
+        setLibrosSugeridos((datosLibros.libros || []).slice(0, 6));
+      }
 
-      setTareas(rTareas.tareas || []);
-
-      setLibrosSugeridos(
-        (rLibrosS.libros || []).slice(0, 6)
-      );
-
-      setRacha(rRacha.racha || 0);
+      if (respuestaRacha.ok) {
+        const datosRacha: { racha?: number } = await respuestaRacha.json();
+        setRacha(datosRacha.racha || 0);
+      }
     } catch (error) {
-      console.error("Error cargando datos:", error);
+      console.error("Error cargando datos del centro de acción:", error);
+      setMensajeCentro(
+        "No se pudo conectar con la base de datos. Tus tareas guardadas en este dispositivo siguen disponibles.",
+      );
     }
   }, []);
 
@@ -136,39 +153,36 @@ export default function OrganizacionPage() {
   }, [cargarTodo]);
 
   useEffect(() => {
+    const avisadas = new Set<string>();
     const chequeo = setInterval(() => {
       const ahora = new Date();
 
-      tareas.forEach((t) => {
+      tareasDisponibles.forEach((t) => {
+        const vencimiento = t.fecha_hora
+          ? new Date(t.fecha_hora).getTime()
+          : null;
         if (
           t.con_alarma &&
-          t.fecha_hora &&
+          vencimiento !== null &&
           t.estado !== "Hecho"
         ) {
-          const diferencia =
-            new Date(t.fecha_hora).getTime() -
-            ahora.getTime();
-
-          if (
-            diferencia > 0 &&
-            diferencia < 60000 &&
-            permisoNotif === "granted"
-          ) {
-            new Notification(
-              "Recordatorio: " + t.titulo,
-              {
-                body:
-                  t.descripcion ||
-                  "Es hora de tu tarea.",
-              }
-            );
+          const diferencia = ahora.getTime() - vencimiento;
+          if (diferencia >= 0 && diferencia < 5 * 60 * 1000 && !avisadas.has(t.id)) {
+            avisadas.add(t.id);
+            reproducirAlarma();
+            if (permisoNotif === "granted" && "Notification" in window) {
+              new Notification(`Recordatorio: ${t.titulo}`, {
+                body: t.descripcion || "Es hora de tu tarea.",
+              });
+            }
+            setMensajeCentro(`Es hora de: ${t.titulo}`);
           }
         }
       });
-    }, 30000);
+    }, 15000);
 
     return () => clearInterval(chequeo);
-  }, [tareas, permisoNotif]);
+  }, [tareasDisponibles, permisoNotif]);
 
   function pedirPermisoNotificaciones() {
     if ("Notification" in window) {
@@ -181,13 +195,14 @@ export default function OrganizacionPage() {
   async function crearTarea(e: React.FormEvent) {
     e.preventDefault();
 
-    await fetch("/api/centro-accion/tareas", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(nuevaTarea),
-    });
+    const tareaLocal: Tarea = {
+      ...nuevaTarea,
+      id: `local-${crypto.randomUUID()}`,
+      descripcion: nuevaTarea.descripcion || null,
+      fecha_hora: nuevaTarea.fecha_hora || null,
+      estado: "Pendiente",
+    };
+    setTareas((actuales) => [...actuales, tareaLocal]);
 
     setNuevaTarea({
       titulo: "",
@@ -199,39 +214,82 @@ export default function OrganizacionPage() {
 
     setModalAbierto(false);
 
-    cargarTodo();
+    try {
+      const respuesta = await fetch("/api/centro-accion/tareas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tareaLocal),
+      });
+      if (!respuesta.ok) throw new Error("No se pudo sincronizar la tarea.");
+      const datos: { tarea: Tarea } = await respuesta.json();
+      setTareas((actuales) =>
+        actuales.map((tarea) => (tarea.id === tareaLocal.id ? datos.tarea : tarea)),
+      );
+      setMensajeCentro("");
+    } catch (error) {
+      console.error("Error guardando la tarea en la nube:", error);
+      setTareasLocales((actuales) => [...actuales, tareaLocal]);
+      setMensajeCentro(
+        "Tarea guardada en este dispositivo. La sincronización con la base de datos no está disponible.",
+      );
+    }
   }
 
   async function marcarHecha(
     id: string,
     estadoActual: string
   ) {
-    await fetch("/api/centro-accion/tareas", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        id,
-        estado:
-          estadoActual === "Hecho"
-            ? "Pendiente"
-            : "Hecho",
-      }),
-    });
+    const nuevoEstado = estadoActual === "Hecho" ? "Pendiente" : "Hecho";
+    if (nuevoEstado === "Hecho") {
+      setTareasCompletadasSesion((actuales) => actuales + 1);
+    }
+    setTareas((actuales) =>
+      actuales.map((tarea) =>
+        tarea.id === id ? { ...tarea, estado: nuevoEstado } : tarea,
+      ),
+    );
+    if (id.startsWith("local-")) {
+      setTareasLocales((actuales) =>
+        actuales.map((tarea) =>
+          tarea.id === id ? { ...tarea, estado: nuevoEstado } : tarea,
+        ),
+      );
+      return;
+    }
 
-    cargarTodo();
+    try {
+      const respuesta = await fetch("/api/centro-accion/tareas", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, estado: nuevoEstado }),
+      });
+      if (!respuesta.ok) throw new Error("No se pudo sincronizar el cambio.");
+      setMensajeCentro("");
+    } catch (error) {
+      console.error("Error sincronizando el estado de la tarea:", error);
+      setMensajeCentro(
+        "El cambio se muestra en este dispositivo, pero no se pudo sincronizar con la base de datos.",
+      );
+    }
   }
 
   async function borrarTarea(id: string) {
-    await fetch(
-      `/api/centro-accion/tareas?id=${id}`,
-      {
-        method: "DELETE",
-      }
-    );
+    setTareas((actuales) => actuales.filter((tarea) => tarea.id !== id));
+    setTareasLocales((actuales) => actuales.filter((tarea) => tarea.id !== id));
+    if (id.startsWith("local-")) return;
 
-    cargarTodo();
+    try {
+      const respuesta = await fetch(`/api/centro-accion/tareas?id=${id}`, {
+        method: "DELETE",
+      });
+      if (!respuesta.ok) throw new Error("No se pudo eliminar la tarea.");
+      setMensajeCentro("");
+    } catch (error) {
+      console.error("Error eliminando la tarea:", error);
+      setMensajeCentro(
+        "No se pudo eliminar la tarea de la base de datos. Vuelve a intentarlo cuando tengas conexión.",
+      );
+    }
   }
 
   async function preguntarIA(e: React.FormEvent) {
@@ -252,22 +310,35 @@ export default function OrganizacionPage() {
           },
           body: JSON.stringify({
             pregunta,
+            contexto: {
+              tareasPendientes: tareasPendientes.map((tarea) => ({
+                titulo: tarea.titulo,
+                prioridad: tarea.prioridad,
+                fecha: tarea.fecha_hora,
+              })),
+              tareasCompletadas: tareasHechas.length,
+              rachaActual: racha,
+            },
           }),
         }
       );
 
-      const data = await res.json();
+      const data: { respuesta?: string; error?: string } = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo generar una respuesta.");
+      }
 
+      setRespuestaIA(data.respuesta || "El asistente devolvió una respuesta vacía.");
+    } catch (error) {
+      console.error("Error consultando al asistente:", error);
       setRespuestaIA(
-        data.respuesta || "Sin respuesta."
+        error instanceof Error
+          ? error.message
+          : "No se pudo conectar con el asistente.",
       );
-    } catch {
-      setRespuestaIA(
-        "No se pudo conectar con el asistente."
-      );
+    } finally {
+      setCargandoIA(false);
     }
-
-    setCargandoIA(false);
   }
 
   const ahora = new Date();
@@ -297,7 +368,7 @@ export default function OrganizacionPage() {
     inicio: Date,
     fin: Date
   ) {
-    return tareas.filter((t) => {
+    return tareasDisponibles.filter((t) => {
       if (!t.fecha_hora) {
         return vista === "dia";
       }
@@ -347,7 +418,7 @@ export default function OrganizacionPage() {
     ).length;
 
   return (
-    <main className="min-h-screen px-4 sm:px-6 py-24 w-full">
+    <div className="min-h-screen px-4 sm:px-6 py-24 w-full">
       <div className="w-full max-w-[1800px] mx-auto">
         <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
           Centro de Accion
@@ -393,6 +464,30 @@ export default function OrganizacionPage() {
             </button>
           </div>
         )}
+
+        {mensajeCentro && (
+          <div
+            role="status"
+            className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+          >
+            <span>{mensajeCentro}</span>
+            <button
+              type="button"
+              onClick={() => setMensajeCentro("")}
+              aria-label="Cerrar aviso"
+              className="shrink-0 font-semibold"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <TimeTools
+          tasks={tareasDisponibles}
+          selectedTaskId={tareaEnfoque}
+          onSelectTask={setTareaEnfoque}
+          completedTaskSignal={tareasCompletadasSesion}
+        />
 
         {/* =====================================================
             CONTENIDO PRINCIPAL
@@ -491,6 +586,20 @@ export default function OrganizacionPage() {
                         />
                       )}
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTareaEnfoque(t.id);
+                        document
+                          .getElementById("temporizador-enfoque")
+                          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-cyan-700 hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
+                    >
+                      <Target size={13} />
+                      Enfocarme en esta tarea
+                    </button>
                   </div>
 
                   <span
@@ -900,6 +1009,6 @@ export default function OrganizacionPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
