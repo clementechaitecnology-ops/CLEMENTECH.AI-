@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import {
   Plus,
   Bell,
@@ -17,6 +18,22 @@ import {
 } from "lucide-react";
 
 import Hourglass from "@/components/ui/hourglass";
+
+type Tarea = {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  fecha_hora: string | null;
+  prioridad: string;
+  con_alarma: boolean;
+  estado: string;
+};
+
+type LibroSugerido = {
+  key: string;
+  titulo: string;
+  portada_url: string | null;
+};
 
 const prioridadColor: Record<string, string> = {
   Alta: "text-red-600 bg-red-100 dark:text-red-300 dark:bg-red-400/10",
@@ -39,8 +56,8 @@ function inicioSemana() {
 }
 
 export default function OrganizacionPage() {
-  const [tareas, setTareas] = useState<any[]>([]);
-  const [librosSugeridos, setLibrosSugeridos] = useState<any[]>([]);
+  const [tareas, setTareas] = useState<Tarea[]>([]);
+  const [librosSugeridos, setLibrosSugeridos] = useState<LibroSugerido[]>([]);
   const [racha, setRacha] = useState(0);
 
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -64,7 +81,7 @@ export default function OrganizacionPage() {
     con_alarma: false,
   });
 
-  async function cargarTodo() {
+  const cargarTodo = useCallback(async () => {
     try {
       const [
         rTareas,
@@ -100,18 +117,23 @@ export default function OrganizacionPage() {
     } catch (error) {
       console.error("Error cargando datos:", error);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    cargarTodo();
-
-    if (
-      typeof window !== "undefined" &&
-      "Notification" in window
-    ) {
-      setPermisoNotif(Notification.permission);
+    let activo = true;
+    async function cargarInicial() {
+      await Promise.resolve();
+      if (!activo) return;
+      await cargarTodo();
+      if ("Notification" in window) {
+        setPermisoNotif(Notification.permission);
+      }
     }
-  }, []);
+    void cargarInicial();
+    return () => {
+      activo = false;
+    };
+  }, [cargarTodo]);
 
   useEffect(() => {
     const chequeo = setInterval(() => {
@@ -622,13 +644,16 @@ export default function OrganizacionPage() {
                     >
                       <div className="aspect-[2/3] bg-neutral-100 dark:bg-neutral-900 rounded-lg overflow-hidden mb-1">
                         {libro.portada_url ? (
-                          <img
+                          <Image
                             src={
                               libro.portada_url
                             }
                             alt={
                               libro.titulo
                             }
+                            width={400}
+                            height={600}
+                            unoptimized
                             className="w-full h-full object-cover"
                           />
                         ) : (

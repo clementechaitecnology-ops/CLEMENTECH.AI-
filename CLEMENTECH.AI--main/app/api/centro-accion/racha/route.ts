@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("racha")
     .select("*")
     .order("fecha", { ascending: false })
@@ -11,8 +11,10 @@ export async function GET() {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   let dias = 0;
-  const fechas = (data || []).map((r) => r.fecha);
-  let cursor = new Date();
+  const fechas: string[] = (data || []).map(
+    (r: { fecha: string }) => r.fecha,
+  );
+  const cursor = new Date();
 
   for (let i = 0; i < 60; i++) {
     const fechaStr = cursor.toISOString().split("T")[0];

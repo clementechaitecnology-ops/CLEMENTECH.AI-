@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Clementech.ai
 
-## Getting Started
+Sitio web de Clementech.ai construido con Next.js, React y Supabase.
 
-First, run the development server:
+## Desarrollo local
+
+Requiere Node.js y npm. Desde esta carpeta:
 
 ```bash
+npm ci
+Copy-Item .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre http://localhost:3000. Completa `.env.local` con las credenciales de los
+servicios que uses; nunca publiques ese archivo ni claves privadas.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variables de entorno
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Configura estas variables en `.env.local` para desarrollo y en el panel del
+proveedor de hosting para producción:
 
-## Learn More
+- `NEXT_PUBLIC_SITE_URL`: URL pública del sitio, por ejemplo
+  `https://www.clementech.online`.
+- `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`: acceso público
+  de Supabase.
+- `SUPABASE_SERVICE_ROLE_KEY`: clave privada usada exclusivamente por las rutas
+  del servidor. No debe tener el prefijo `NEXT_PUBLIC_`.
+- `OPENAI_API_KEY` y `ANTHROPIC_API_KEY`: necesarias para las funciones de IA
+  que usan esos proveedores.
 
-To learn more about Next.js, take a look at the following resources:
+Las rutas de Supabase requieren una URL y clave válidas al recibir solicitudes;
+la compilación del sitio no necesita estas credenciales.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Comprobaciones
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run lint
+npm run build
+```
 
-## Deploy on Vercel
+## Publicación
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El proyecto usa Next.js y puede desplegarse en Vercel conectado al repositorio
+de GitHub. Configura las variables de entorno anteriores en el proyecto de
+Vercel y agrega el dominio en **Settings → Domains**. El DNS del dominio debe
+apuntar a los registros que indique Vercel.

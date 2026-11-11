@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("tareas")
     .select("*")
     .order("fecha_hora", { ascending: true });
@@ -14,7 +14,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = await request.json();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("tareas")
     .insert({
       titulo: body.titulo,
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const body = await request.json();
 
-  const { error } = await supabaseAdmin
+  const { error } = await getSupabaseAdmin()
     .from("tareas")
     .update({ estado: body.estado })
     .eq("id", body.id);
@@ -42,19 +42,19 @@ export async function PATCH(request: Request) {
 
   if (body.estado === "Hecho") {
     const hoy = new Date().toISOString().split("T")[0];
-    const { data: existente } = await supabaseAdmin
+    const { data: existente } = await getSupabaseAdmin()
       .from("racha")
       .select("*")
       .eq("fecha", hoy)
       .single();
 
     if (existente) {
-      await supabaseAdmin
+      await getSupabaseAdmin()
         .from("racha")
         .update({ tareas_completadas: existente.tareas_completadas + 1 })
         .eq("fecha", hoy);
     } else {
-      await supabaseAdmin.from("racha").insert({ fecha: hoy, tareas_completadas: 1 });
+      await getSupabaseAdmin().from("racha").insert({ fecha: hoy, tareas_completadas: 1 });
     }
   }
 
@@ -64,8 +64,11 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "Se requiere el id de la tarea." }, { status: 400 });
+  }
 
-  const { error } = await supabaseAdmin.from("tareas").delete().eq("id", id);
+  const { error } = await getSupabaseAdmin().from("tareas").delete().eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

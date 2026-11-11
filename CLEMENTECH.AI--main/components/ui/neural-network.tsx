@@ -30,7 +30,6 @@ export default function NeuralNetwork() {
       const rx = 95 * radiusFactor;
       const ry = 80 * radiusFactor;
       const wobble = Math.sin(angle * 3) * 8;
-      const x = centerX + side * 55 + Math.cos(angle) * (rx + wobble) * side * -1 * (side < 0 ? 1 : 1);
       const y = centerY + Math.sin(angle) * (ry + wobble);
       return { x: centerX + side * 55 + Math.cos(angle) * rx * 0.9, y };
     }

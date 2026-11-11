@@ -16,7 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.clementech.online"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.clementech.online",
+  ),
   title: "Clementech.ai",
   description: "Plataforma de inteligencia artificial",
 };

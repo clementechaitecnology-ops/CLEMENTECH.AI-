@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -22,8 +22,41 @@ import {
   Webhook,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const iconosConexion: Record<string, any> = {
+type Pedido = {
+  id: string;
+  cliente_nombre: string;
+  producto_nombre: string;
+  transportadora: string;
+  estado: string;
+  precio_unitario: number;
+  total: number;
+};
+
+type Devolucion = {
+  id: string;
+  cliente_nombre: string;
+  pedido_codigo: string;
+  motivo: string;
+  estado: string;
+};
+
+type Automatizacion = {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  canal: string;
+  activa: boolean;
+};
+
+type Conexion = {
+  id: string;
+  nombre: string;
+  estado: string;
+};
+
+const iconosConexion: Record<string, LucideIcon> = {
   "WhatsApp Business": MessageCircle,
   "Dropi": Package,
   "Meta Business Suite": Users,
@@ -48,10 +81,10 @@ const colorEstado: Record<string, string> = {
 };
 
 export default function DropshippingPage() {
-  const [pedidos, setPedidos] = useState<any[]>([]);
-  const [devoluciones, setDevoluciones] = useState<any[]>([]);
-  const [automatizaciones, setAutomatizaciones] = useState<any[]>([]);
-  const [conexiones, setConexiones] = useState<any[]>([]);
+  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [devoluciones, setDevoluciones] = useState<Devolucion[]>([]);
+  const [automatizaciones, setAutomatizaciones] = useState<Automatizacion[]>([]);
+  const [conexiones, setConexiones] = useState<Conexion[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [filtro, setFiltro] = useState("Todos");
@@ -65,10 +98,10 @@ export default function DropshippingPage() {
   const [nuevoPedido, setNuevoPedido] = useState({ cliente_nombre: "", producto_nombre: "", transportadora: "", precio_unitario: "" });
   const [nuevaDevolucion, setNuevaDevolucion] = useState({ pedido_codigo: "", cliente_nombre: "", motivo: "" });
 
-  async function cargarTodo() {
+  const cargarTodo = useCallback(async () => {
     setLoading(true);
     const [rPedidos, rDevoluciones, rAuto, rConexiones] = await Promise.all([
-      fetch("/api/dropshipping/pedidos").then((r) => r.json()),
+      fetch("/api/dropshipping").then((r) => r.json()),
       fetch("/api/dropshipping/devoluciones").then((r) => r.json()),
       fetch("/api/dropshipping/automatizaciones").then((r) => r.json()),
       fetch("/api/dropshipping/conexiones").then((r) => r.json()),
@@ -78,11 +111,19 @@ export default function DropshippingPage() {
     setAutomatizaciones(rAuto.automatizaciones || []);
     setConexiones(rConexiones.conexiones || []);
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
-    cargarTodo();
-  }, []);
+    let activo = true;
+    async function cargarInicial() {
+      await Promise.resolve();
+      if (activo) await cargarTodo();
+    }
+    void cargarInicial();
+    return () => {
+      activo = false;
+    };
+  }, [cargarTodo]);
 
   function mostrarMensaje(texto: string) {
     setMensaje(texto);
@@ -91,7 +132,7 @@ export default function DropshippingPage() {
 
   async function crearPedido(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/dropshipping/pedidos", {
+    await fetch("/api/dropshipping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -106,7 +147,7 @@ export default function DropshippingPage() {
   }
 
   async function cambiarEstado(id: string, estado: string) {
-    await fetch("/api/dropshipping/pedidos", {
+    await fetch("/api/dropshipping", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, estado }),

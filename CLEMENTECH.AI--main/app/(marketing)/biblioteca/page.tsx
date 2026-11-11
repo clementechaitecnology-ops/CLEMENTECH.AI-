@@ -1,36 +1,62 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, BookmarkPlus, Trash2, BookOpen } from "lucide-react";
+import Image from "next/image";
+
+type LibroEncontrado = {
+  key: string;
+  titulo: string;
+  autor: string;
+  portada_url: string | null;
+};
+
+type LibroGuardado = LibroEncontrado & {
+  id: string;
+  estado: string;
+};
 
 export default function BibliotecaPage() {
   const [busqueda, setBusqueda] = useState("crecimiento personal finanzas");
-  const [resultados, setResultados] = useState<any[]>([]);
-  const [guardados, setGuardados] = useState<any[]>([]);
+  const [resultados, setResultados] = useState<LibroEncontrado[]>([]);
+  const [guardados, setGuardados] = useState<LibroGuardado[]>([]);
   const [cargando, setCargando] = useState(false);
   const [vista, setVista] = useState<"buscar" | "guardados">("buscar");
 
-  async function buscar(e?: React.FormEvent) {
+  const buscar = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     setCargando(true);
-    const res = await fetch(`/api/libros/buscar?q=${encodeURIComponent(busqueda)}`);
-    const data = await res.json();
-    setResultados(data.libros || []);
-    setCargando(false);
-  }
+    try {
+      const res = await fetch(`/api/libros/buscar?q=${encodeURIComponent(busqueda)}`);
+      if (!res.ok) throw new Error("No se pudieron cargar los libros.");
+      const data: { libros?: LibroEncontrado[] } = await res.json();
+      setResultados(data.libros || []);
+    } finally {
+      setCargando(false);
+    }
+  }, [busqueda]);
 
-  async function cargarGuardados() {
+  const cargarGuardados = useCallback(async () => {
     const res = await fetch("/api/libros/guardados");
-    const data = await res.json();
+    if (!res.ok) throw new Error("No se pudieron cargar tus libros guardados.");
+    const data: { libros?: LibroGuardado[] } = await res.json();
     setGuardados(data.libros || []);
-  }
-
-  useEffect(() => {
-    buscar();
-    cargarGuardados();
   }, []);
 
-  async function guardarLibro(libro: any) {
+  useEffect(() => {
+    let activo = true;
+    async function cargarIniciales() {
+      await Promise.resolve();
+      if (!activo) return;
+      await Promise.all([buscar(), cargarGuardados()]);
+    }
+    void cargarIniciales();
+    return () => {
+      activo = false;
+    };
+  }, [buscar, cargarGuardados]);
+
+  async function guardarLibro(libro: LibroEncontrado) {
     await fetch("/api/libros/guardados", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,7 +133,14 @@ export default function BibliotecaPage() {
               <div key={libro.key} className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3">
                 <div className="aspect-[2/3] bg-neutral-100 dark:bg-neutral-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                   {libro.portada_url ? (
-                    <img src={libro.portada_url} alt={libro.titulo} className="w-full h-full object-cover" />
+                    <Image
+                      src={libro.portada_url}
+                      alt={libro.titulo}
+                      width={400}
+                      height={600}
+                      unoptimized
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <BookOpen size={32} className="text-neutral-400" />
                   )}
@@ -132,7 +165,14 @@ export default function BibliotecaPage() {
             <div key={libro.id} className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-xl p-3">
               <div className="aspect-[2/3] bg-neutral-100 dark:bg-neutral-900 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                 {libro.portada_url ? (
-                  <img src={libro.portada_url} alt={libro.titulo} className="w-full h-full object-cover" />
+                  <Image
+                    src={libro.portada_url}
+                    alt={libro.titulo}
+                    width={400}
+                    height={600}
+                    unoptimized
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <BookOpen size={32} className="text-neutral-400" />
                 )}
@@ -158,7 +198,7 @@ export default function BibliotecaPage() {
           ))}
           {guardados.length === 0 && (
             <p className="col-span-full text-sm text-neutral-500 text-center py-10">
-              Aun no has guardado libros. Ve a "Buscar" para agregar algunos.
+              Aun no has guardado libros. Ve a &quot;Buscar&quot; para agregar algunos.
             </p>
           )}
         </div>

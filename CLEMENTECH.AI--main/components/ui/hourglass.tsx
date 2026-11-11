@@ -155,40 +155,78 @@ function mezclar<T>(lista: T[]): T[] {
   return copia;
 }
 
-function normalizarFrases(data: any): Frase[] {
-  const lista = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.frases)
-      ? data.frases
-      : [];
-
-  return lista
-    .map((item: any, index: number) => ({
-      id: item.id ?? `api-frase-${index}`,
-      texto: item.texto ?? item.frase ?? "",
-      autor: item.autor ?? item.autor_nombre ?? "Autor desconocido",
-    }))
-    .filter((item: Frase) => item.texto.trim());
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
-function normalizarVersiculos(data: any): Versiculo[] {
-  const lista = Array.isArray(data)
-    ? data
-    : Array.isArray(data?.versiculos)
-      ? data.versiculos
-      : [];
+function obtenerLista(data: unknown, clave: string): unknown[] {
+  if (Array.isArray(data)) return data;
+  const lista = asRecord(data)?.[clave];
+  return Array.isArray(lista) ? lista : [];
+}
 
-  return lista
-    .map((item: any, index: number) => ({
-      id: item.id ?? `api-versiculo-${index}`,
-      texto: item.texto ?? item.versiculo ?? "",
-      referencia:
-        item.referencia ??
-        item.cita ??
-        item.referencia_biblica ??
-        "Referencia bíblica",
-    }))
-    .filter((item: Versiculo) => item.texto.trim());
+function normalizarFrases(data: unknown): Frase[] {
+  return obtenerLista(data, "frases").flatMap((item, index) => {
+    const registro = asRecord(item);
+    const texto =
+      typeof registro?.texto === "string"
+        ? registro.texto
+        : typeof registro?.frase === "string"
+          ? registro.frase
+          : "";
+
+    if (!texto.trim()) return [];
+
+    const autor =
+      typeof registro?.autor === "string"
+        ? registro.autor
+        : typeof registro?.autor_nombre === "string"
+          ? registro.autor_nombre
+          : "Autor desconocido";
+
+    return [{
+      id:
+        typeof registro?.id === "string" || typeof registro?.id === "number"
+          ? registro.id
+          : `api-frase-${index}`,
+      texto,
+      autor,
+    }];
+  });
+}
+
+function normalizarVersiculos(data: unknown): Versiculo[] {
+  return obtenerLista(data, "versiculos").flatMap((item, index) => {
+    const registro = asRecord(item);
+    const texto =
+      typeof registro?.texto === "string"
+        ? registro.texto
+        : typeof registro?.versiculo === "string"
+          ? registro.versiculo
+          : "";
+
+    if (!texto.trim()) return [];
+
+    const referencia =
+      typeof registro?.referencia === "string"
+        ? registro.referencia
+        : typeof registro?.cita === "string"
+          ? registro.cita
+          : typeof registro?.referencia_biblica === "string"
+            ? registro.referencia_biblica
+            : "Referencia bíblica";
+
+    return [{
+      id:
+        typeof registro?.id === "string" || typeof registro?.id === "number"
+          ? registro.id
+          : `api-versiculo-${index}`,
+      texto,
+      referencia,
+    }];
+  });
 }
 
 export default function Hourglass() {
